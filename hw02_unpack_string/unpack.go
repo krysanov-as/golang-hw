@@ -2,11 +2,49 @@ package hw02unpackstring
 
 import (
 	"errors"
+	"strconv"
+	"strings"
+	"unicode"
 )
 
 var ErrInvalidString = errors.New("invalid string")
 
-func Unpack(_ string) (string, error) {
-	// Place your code here.
-	return "", nil
+func Unpack(str string) (string, error) {
+	runes := []rune(str)
+
+	if len(runes) == 0 {
+		return "", nil
+	}
+
+	var result strings.Builder
+	var prevRune rune
+	var err error
+	var n int
+	for _, r := range runes {
+		if unicode.IsDigit(r) {
+			if prevRune == 0 {
+				return "", ErrInvalidString
+			}
+			n, err = strconv.Atoi(string(r))
+			if err != nil {
+				return "", err
+			}
+			if n == 0 {
+				prevRune = 0
+			} else {
+				result.WriteString(strings.Repeat(string(prevRune), n))
+				prevRune = 0
+			}
+		} else {
+			if prevRune != 0 {
+				result.WriteRune(prevRune)
+			}
+			prevRune = r
+		}
+	}
+	if prevRune != 0 {
+		result.WriteRune(prevRune)
+	}
+
+	return result.String(), nil
 }
