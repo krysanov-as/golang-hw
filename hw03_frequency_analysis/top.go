@@ -25,6 +25,16 @@ func Top10(text string) []string {
 		}
 	}
 
+	result := MapSorted(maps)
+
+	return result[:10]
+}
+
+func MapSorted(maps map[string]int) []string {
+	if maps == nil {
+		return nil
+	}
+
 	resultSlice := make([]string, 0, len(maps))
 	for w := range maps {
 		resultSlice = append(resultSlice, w)
@@ -37,6 +47,5 @@ func Top10(text string) []string {
 		}
 		return iWords < jWords
 	})
-
-	return resultSlice[:10]
+	return resultSlice
 }

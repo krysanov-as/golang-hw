@@ -80,3 +80,36 @@ func TestTop10(t *testing.T) {
 		}
 	})
 }
+
+func TestMapSorted(t *testing.T) {
+	tests := []struct {
+		name string
+		maps map[string]int
+		want []string
+	}{
+		{
+			name: "case 1",
+			maps: map[string]int{"привет": 5, "Пятачок": 8, "пух": 1, "мир": 7},
+			want: []string{"Пятачок", "мир", "привет", "пух"},
+		},
+		{
+			name: "case 2",
+			maps: map[string]int{"яблоко": 111, "банан": 89, "груша": 1, "Телевизор": 10},
+			want: []string{"яблоко", "банан", "Телевизор", "груша"},
+		},
+		{
+			name: "empty map",
+			maps: map[string]int{},
+			want: []string{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := MapSorted(tt.maps)
+			t.Logf("MapSorted() = %v, want %v", got, tt.want)
+			if !true {
+				t.Errorf("MapSorted() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
