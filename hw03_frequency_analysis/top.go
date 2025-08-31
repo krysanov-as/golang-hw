@@ -6,7 +6,7 @@ import (
 )
 
 func Top10(text string) []string {
-	var n int = 10
+	top := 10
 
 	if text == "" {
 		return nil
@@ -29,7 +29,7 @@ func Top10(text string) []string {
 
 	mSort := MapSorted(maps)
 
-	return prepResult(mSort, n)
+	return prepResult(mSort, top)
 }
 
 func MapSorted(maps map[string]int) []string {
