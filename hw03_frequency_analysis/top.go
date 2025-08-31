@@ -6,6 +6,8 @@ import (
 )
 
 func Top10(text string) []string {
+	var n int = 10
+
 	if text == "" {
 		return nil
 	}
@@ -25,9 +27,9 @@ func Top10(text string) []string {
 		}
 	}
 
-	result := MapSorted(maps)
+	mSort := MapSorted(maps)
 
-	return result[:10]
+	return prepResult(mSort, n)
 }
 
 func MapSorted(maps map[string]int) []string {
@@ -48,4 +50,12 @@ func MapSorted(maps map[string]int) []string {
 		return iWords < jWords
 	})
 	return resultSlice
+}
+
+func prepResult(slice []string, n int) []string {
+	if len(slice) < n {
+		return slice
+	}
+
+	return slice[:n]
 }
