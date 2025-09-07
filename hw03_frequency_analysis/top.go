@@ -1,6 +1,61 @@
 package hw03frequencyanalysis
 
-func Top10(_ string) []string {
-	// Place your code here.
-	return nil
+import (
+	"sort"
+	"strings"
+)
+
+func Top10(text string) []string {
+	top := 10
+
+	if text == "" {
+		return nil
+	}
+
+	sliceUniqWord := strings.Fields(text)
+
+	maps := make(map[string]int, len(text))
+
+	initCounter := 1
+	for _, v := range sliceUniqWord {
+		_, ok := maps[v]
+
+		if !ok {
+			maps[v] = initCounter
+		} else {
+			maps[v]++
+		}
+	}
+
+	mSort := MapSorted(maps)
+
+	return prepResult(mSort, top)
+}
+
+func MapSorted(maps map[string]int) []string {
+	if maps == nil {
+		return nil
+	}
+
+	resultSlice := make([]string, 0, len(maps))
+	for w := range maps {
+		resultSlice = append(resultSlice, w)
+	}
+
+	sort.Slice(resultSlice, func(i, j int) bool {
+		iWords, jWords := resultSlice[i], resultSlice[j]
+		if maps[iWords] != maps[jWords] {
+			return maps[iWords] > maps[jWords]
+		}
+		return iWords < jWords
+	})
+	return resultSlice
+}
+
+func prepResult(slice []string, n int) []string {
+	if len(slice) < n {
+		return slice
+	}
+
+	return slice[:n]
 }
