@@ -1,6 +1,13 @@
 package hw04lrucache
 
+import "sync"
+
 type Key string
+
+type cacheItem struct {
+	key   Key
+	value interface{}
+}
 
 type Cache interface {
 	Set(key Key, value interface{}) bool
@@ -8,54 +15,51 @@ type Cache interface {
 	Clear()
 }
 
-type cacheItem struct {
-	value    interface{}
-	listItem *ListItem
-}
-
 type lruCache struct {
 	capacity int
 	queue    List
-	items    map[Key]*cacheItem
+	items    map[Key]*ListItem
+	mu       sync.Mutex
 }
 
 func NewCache(capacity int) Cache {
 	return &lruCache{
 		capacity: capacity,
 		queue:    NewList(),
-		items:    make(map[Key]*cacheItem, capacity),
+		items:    make(map[Key]*ListItem, capacity),
 	}
 }
 
 func (l *lruCache) Set(key Key, value interface{}) bool {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if element, ok := l.items[key]; ok {
-		element.value = value
-		l.queue.MoveToFront(element.listItem)
+		ci := cacheItem{key: key, value: value}
+		element.Value = ci
+		l.queue.MoveToFront(element)
 		return true
 	}
 
-	newItem := l.queue.PushFront(key)
-	l.items[key] = &cacheItem{
-		value:    value,
-		listItem: newItem,
+	if l.queue.Len() == l.capacity {
+		back := l.queue.Back()
+		val, _ := back.Value.(cacheItem)
+		delete(l.items, val.key)
+		l.queue.Remove(back)
 	}
 
-	if l.queue.Len() > l.capacity {
-		back := l.queue.Back()
-		if back != nil {
-			deleteKey := back.Value.(Key)
-			l.queue.Remove(back)
-			delete(l.items, deleteKey)
-		}
-	}
+	ci := l.queue.PushFront(cacheItem{key: key, value: value})
+	l.items[key] = ci
 
 	return false
 }
 
 func (l *lruCache) Get(key Key) (interface{}, bool) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if element, ok := l.items[key]; ok {
-		l.queue.MoveToFront(element.listItem)
-		return element.value, true
+		l.queue.MoveToFront(element)
+		val, _ := element.Value.(cacheItem)
+		return val.value, true
 	}
 
 	return nil, false
@@ -63,5 +67,5 @@ func (l *lruCache) Get(key Key) (interface{}, bool) {
 
 func (l *lruCache) Clear() {
 	l.queue = NewList()
-	l.items = make(map[Key]*cacheItem, l.capacity)
+	l.items = make(map[Key]*ListItem, l.capacity)
 }
