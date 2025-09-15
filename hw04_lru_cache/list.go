@@ -110,18 +110,18 @@ func (l *list) Remove(i *ListItem) {
 }
 
 func (l *list) MoveToFront(i *ListItem) {
-	if i == l.head || l.lens <= 1 {
+	if l.head == i {
 		return
 	}
 
-	if i.Prev != nil {
-		i.Prev.Next = i.Next
-	}
-	if i.Next != nil {
-		i.Next.Prev = i.Prev
-	} else {
+	if l.tail == i {
 		l.tail = i.Prev
+		l.tail.Next = nil
+	} else {
+		i.Prev.Next = i.Next
+		i.Next.Prev = i.Prev
 	}
+
 	i.Prev = nil
 	i.Next = l.head
 	l.head.Prev = i
