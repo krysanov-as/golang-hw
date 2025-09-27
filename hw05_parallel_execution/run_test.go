@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"go.uber.org/goleak"
+	"go.uber.org/goleak" //nolint:depguard
 )
 
 func TestRun(t *testing.T) {
@@ -66,5 +66,29 @@ func TestRun(t *testing.T) {
 
 		require.Equal(t, int32(tasksCount), runTasksCount, "not all tasks were completed")
 		require.LessOrEqual(t, int64(elapsedTime), int64(sumTime/2), "tasks were run sequentially?")
+	})
+
+	t.Run("m <= 0 always returns ErrErrorsLimitExceeded", func(t *testing.T) {
+		tasksCount := 10
+		tasks := make([]Task, 0, tasksCount)
+
+		var runTasksCount int32
+
+		for i := 0; i < tasksCount; i++ {
+			tasks = append(tasks, func() error {
+				atomic.AddInt32(&runTasksCount, 1)
+				return nil
+			})
+		}
+
+		workersCount := 3
+
+		err := Run(tasks, workersCount, 0)
+		require.ErrorIs(t, err, ErrErrorsLimitExceeded)
+		require.Equal(t, int32(0), runTasksCount, "tasks should not run when m <= 0")
+
+		err = Run(tasks, workersCount, -5)
+		require.ErrorIs(t, err, ErrErrorsLimitExceeded)
+		require.Equal(t, int32(0), runTasksCount, "tasks should not run when m <= 0")
 	})
 }
