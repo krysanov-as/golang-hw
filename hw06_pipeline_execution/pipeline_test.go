@@ -145,6 +145,27 @@ func TestAllStageStop(t *testing.T) {
 		wg.Wait()
 
 		require.Len(t, result, 0)
+	})
 
+	t.Run("empty input channel", func(t *testing.T) {
+		in := make(Bi)
+		close(in)
+
+		stages := []Stage{
+			g("Dummy", func(v interface{}) interface{} { return v }),
+			g("Multiplier (* 2)", func(v interface{}) interface{} { return v.(int) * 2 }),
+			g("Adder (+ 100)", func(v interface{}) interface{} { return v.(int) + 100 }),
+			g("Stringifier", func(v interface{}) interface{} { return strconv.Itoa(v.(int)) }),
+		}
+
+		result := make([]string, 0, 10)
+		start := time.Now()
+		for s := range ExecutePipeline(in, nil, stages...) {
+			result = append(result, s.(string))
+		}
+		elapsed := time.Since(start)
+
+		require.Len(t, result, 0)
+		require.Less(t, int64(elapsed), int64(sleepPerStage)+int64(fault))
 	})
 }
