@@ -2,13 +2,11 @@ package hw09structvalidator
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 )
 
 type UserRole string
 
-// Test the function on different structures and other types.
 type (
 	User struct {
 		ID     string `json:"id" validate:"len:36"`
@@ -39,22 +37,74 @@ type (
 func TestValidate(t *testing.T) {
 	tests := []struct {
 		in          interface{}
-		expectedErr error
+		desc        string
+		expectedErr bool
 	}{
 		{
-			// Place your code here.
+			User{
+				ID:     "550e8400-e29b-41d4-a716-446655440000",
+				Name:   "Alexey",
+				Age:    36,
+				Email:  "alexey@example.com",
+				Role:   "admin",
+				Phones: []string{"89199999999"},
+			},
+			"valid user Alexey", false,
 		},
-		// ...
-		// Place your code here.
+		{
+			User{
+				ID:     "1234567",
+				Name:   "Andrey",
+				Age:    38,
+				Email:  "andrey@example.com",
+				Role:   "guest",
+				Phones: []string{"9876"},
+			},
+			"invalid user Andrey", true,
+		},
+		{
+			App{Version: "0.1.1"},
+			"valid app version",
+			false,
+		},
+		{
+			App{Version: "123456789"},
+			"invalid app version",
+			true,
+		},
+		{
+			Response{
+				Code: 404,
+				Body: "Not Found",
+			},
+			"valid response 404",
+			false,
+		},
+		{
+			Response{
+				Code: 418,
+				Body: "I'm a teapot",
+			},
+			"invalid response code 418",
+			true,
+		},
+		{
+			Token{
+				Header:    []byte{1, 1, 1},
+				Payload:   []byte{2, 2, 2},
+				Signature: []byte{3, 3, 3},
+			},
+			"valid token",
+			false,
+		},
 	}
 
-	for i, tt := range tests {
-		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {
-			tt := tt
-			t.Parallel()
-
-			// Place your code here.
-			_ = tt
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			err := Validate(tt.in)
+			if (err != nil) != tt.expectedErr {
+				t.Errorf("%s: expected error: %v, got: %v", tt.desc, tt.expectedErr, err)
+			}
 		})
 	}
 }
