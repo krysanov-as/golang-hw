@@ -111,11 +111,11 @@ func checkLen(field reflect.StructField, value reflect.Value, want int) Validati
 				fmt.Errorf("length must be %d", want),
 			})
 		}
-	default:
-		vErrors = append(vErrors, ValidationError{
-			field.Name,
-			fmt.Errorf("len rule not supported for type %s", value.Kind()),
-		})
+	case reflect.Invalid, reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr, reflect.Float32,
+		reflect.Float64, reflect.Complex64, reflect.Complex128, reflect.Chan, reflect.Func, reflect.Interface, reflect.Map,
+		reflect.Ptr, reflect.Struct, reflect.UnsafePointer:
+		vErrors = append(vErrors, ValidationError{field.Name, fmt.Errorf("len rule not supported for type %s", value.Kind())})
 	}
 
 	return vErrors
