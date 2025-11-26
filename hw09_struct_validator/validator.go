@@ -48,19 +48,32 @@ func Validate(v interface{}) error {
 			name, arg, _ := strings.Cut(rule, ":")
 			switch name {
 			case "len":
-				want, _ := strconv.Atoi(arg)
+				want, err := strconv.Atoi(arg)
+				if err != nil {
+					return err
+				}
 				vErrors = append(vErrors, checkLen(field, value, want)...)
 			case "min":
-				minVal, _ := strconv.Atoi(arg)
+				minVal, err := strconv.Atoi(arg)
+				if err != nil {
+					return err
+				}
 				vErrors = append(vErrors, checkMin(field, value, minVal)...)
 			case "max":
-				maxVal, _ := strconv.Atoi(arg)
+				maxVal, err := strconv.Atoi(arg)
+				if err != nil {
+					return err
+				}
 				vErrors = append(vErrors, checkMax(field, value, maxVal)...)
 			case "in":
 				options := strings.Split(arg, ",")
 				vErrors = append(vErrors, checkIn(field, value, options)...)
 			case "regexp":
-				vErrors = append(vErrors, checkRegexp(field, value, arg)...)
+				vErrorsElem, err := checkRegexp(field, value, arg)
+				if err != nil {
+					return err
+				}
+				vErrors = append(vErrors, vErrorsElem...)
 			default:
 				vErrors = append(vErrors, ValidationError{
 					Field: field.Name,
@@ -177,16 +190,19 @@ func checkIn(field reflect.StructField, value reflect.Value, options []string) V
 	return vErrors
 }
 
-func checkRegexp(field reflect.StructField, value reflect.Value, pattern string) ValidationErrors {
+func checkRegexp(field reflect.StructField, value reflect.Value, pattern string) (ValidationErrors, error) {
 	var vErrors ValidationErrors
-	re, _ := regexp.Compile(pattern)
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return nil, err
+	}
 	if !re.MatchString(fmt.Sprintf("%v", value.Interface())) {
 		vErrors = append(vErrors, ValidationError{
 			field.Name,
 			fmt.Errorf("value does not match regexp %s", pattern),
 		})
 	}
-	return vErrors
+	return vErrors, nil
 }
 
 func isInt(k reflect.Kind) bool {
