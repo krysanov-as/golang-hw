@@ -75,10 +75,7 @@ func Validate(v interface{}) error {
 				}
 				vErrors = append(vErrors, vErrorsElem...)
 			default:
-				vErrors = append(vErrors, ValidationError{
-					Field: field.Name,
-					Err:   fmt.Errorf("unknown rule %s", name),
-				})
+				return fmt.Errorf("unknown validation rule %s in field %s", name, field.Name)
 			}
 		}
 	}
