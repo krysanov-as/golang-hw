@@ -46,37 +46,13 @@ func Validate(v interface{}) error {
 		rules := strings.Split(tag, "|")
 		for _, rule := range rules {
 			name, arg, _ := strings.Cut(rule, ":")
-			switch name {
-			case "len":
-				want, err := strconv.Atoi(arg)
-				if err != nil {
-					return err
-				}
-				vErrors = append(vErrors, checkLen(field, value, want)...)
-			case "min":
-				minVal, err := strconv.Atoi(arg)
-				if err != nil {
-					return err
-				}
-				vErrors = append(vErrors, checkMin(field, value, minVal)...)
-			case "max":
-				maxVal, err := strconv.Atoi(arg)
-				if err != nil {
-					return err
-				}
-				vErrors = append(vErrors, checkMax(field, value, maxVal)...)
-			case "in":
-				options := strings.Split(arg, ",")
-				vErrors = append(vErrors, checkIn(field, value, options)...)
-			case "regexp":
-				vErrorsElem, err := checkRegexp(field, value, arg)
-				if err != nil {
-					return err
-				}
-				vErrors = append(vErrors, vErrorsElem...)
-			default:
-				return fmt.Errorf("unknown validation rule %s in field %s", name, field.Name)
+
+			vErrorsElem, err := validateRule(field, value, name, arg)
+			if err != nil {
+				return err
 			}
+
+			vErrors = append(vErrors, vErrorsElem...)
 		}
 	}
 
@@ -86,7 +62,42 @@ func Validate(v interface{}) error {
 	return nil
 }
 
-func checkLen(field reflect.StructField, value reflect.Value, want int) ValidationErrors {
+func validateRule(field reflect.StructField, value reflect.Value, name, arg string) (ValidationErrors, error) {
+	switch name {
+	case "len":
+		want, err := strconv.Atoi(arg)
+		if err != nil {
+			return nil, err
+		}
+		return checkLen(field, value, want)
+
+	case "min":
+		minVal, err := strconv.Atoi(arg)
+		if err != nil {
+			return nil, err
+		}
+		return checkMin(field, value, minVal)
+
+	case "max":
+		maxVal, err := strconv.Atoi(arg)
+		if err != nil {
+			return nil, err
+		}
+		return checkMax(field, value, maxVal)
+
+	case "in":
+		options := strings.Split(arg, ",")
+		return checkIn(field, value, options), nil
+
+	case "regexp":
+		return checkRegexp(field, value, arg)
+
+	default:
+		return nil, fmt.Errorf("unknown validation rule %s in field %s", name, field.Name)
+	}
+}
+
+func checkLen(field reflect.StructField, value reflect.Value, want int) (ValidationErrors, error) {
 	var vErrors ValidationErrors
 
 	switch value.Kind() {
@@ -125,13 +136,12 @@ func checkLen(field reflect.StructField, value reflect.Value, want int) Validati
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr, reflect.Float32,
 		reflect.Float64, reflect.Complex64, reflect.Complex128, reflect.Chan, reflect.Func, reflect.Interface, reflect.Map,
 		reflect.Ptr, reflect.Struct, reflect.UnsafePointer:
-		vErrors = append(vErrors, ValidationError{field.Name, fmt.Errorf("len rule not supported for type %s", value.Kind())})
+		return nil, fmt.Errorf("len rule not supported for type %s", value.Kind())
 	}
-
-	return vErrors
+	return vErrors, nil
 }
 
-func checkMin(field reflect.StructField, value reflect.Value, minVal int) ValidationErrors {
+func checkMin(field reflect.StructField, value reflect.Value, minVal int) (ValidationErrors, error) {
 	var vErrors ValidationErrors
 	if isInt(value.Kind()) {
 		if value.Int() < int64(minVal) {
@@ -141,15 +151,12 @@ func checkMin(field reflect.StructField, value reflect.Value, minVal int) Valida
 			})
 		}
 	} else {
-		vErrors = append(vErrors, ValidationError{
-			field.Name,
-			fmt.Errorf("min rule not supported for type %s", value.Kind()),
-		})
+		return nil, fmt.Errorf("min rule not supported for type %s", value.Kind())
 	}
-	return vErrors
+	return vErrors, nil
 }
 
-func checkMax(field reflect.StructField, value reflect.Value, maxVal int) ValidationErrors {
+func checkMax(field reflect.StructField, value reflect.Value, maxVal int) (ValidationErrors, error) {
 	var vErrors ValidationErrors
 	if isInt(value.Kind()) {
 		if value.Int() > int64(maxVal) {
@@ -159,12 +166,9 @@ func checkMax(field reflect.StructField, value reflect.Value, maxVal int) Valida
 			})
 		}
 	} else {
-		vErrors = append(vErrors, ValidationError{
-			field.Name,
-			fmt.Errorf("max rule not supported for type %s", value.Kind()),
-		})
+		return nil, fmt.Errorf("max rule not supported for type %s", value.Kind())
 	}
-	return vErrors
+	return vErrors, nil
 }
 
 func checkIn(field reflect.StructField, value reflect.Value, options []string) ValidationErrors {
