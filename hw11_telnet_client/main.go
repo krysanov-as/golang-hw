@@ -6,7 +6,9 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -27,8 +29,17 @@ func main() {
 	}
 	defer telnetClient.Close()
 
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		<-sigCh
+		log.Println("signal received, closing connection")
+		telnetClient.Close()
+	}()
+
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
+
 	go func() {
 		for {
 			if err := telnetClient.Receive(); err != nil {
@@ -37,6 +48,7 @@ func main() {
 		}
 		wg.Done()
 	}()
+
 	go func() {
 		for {
 			if err := telnetClient.Send(); err != nil {
@@ -45,5 +57,6 @@ func main() {
 		}
 		wg.Done()
 	}()
+
 	wg.Wait()
 }
