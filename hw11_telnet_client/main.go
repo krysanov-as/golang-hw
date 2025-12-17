@@ -1,13 +1,12 @@
 package main
 
 import (
-	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -19,44 +18,46 @@ func main() {
 
 	args := flag.Args()
 	if len(args) != 2 {
-		log.Fatal("usage: go-telnet [--timeout=10s] <host> <port>")
+		fmt.Fprintln(os.Stderr, "usage: go-telnet [--timeout=10s] <host> <port>")
+		return
 	}
-	address := net.JoinHostPort(args[0], args[1])
 
+	address := net.JoinHostPort(args[0], args[1])
 	telnetClient := NewTelnetClient(address, timeout, os.Stdin, os.Stdout)
-	if err := telnetClient.Connect(); errors.Is(err, ErrFailedConnection) {
-		log.Fatal(err.Error())
+
+	if err := telnetClient.Connect(); err != nil {
+		fmt.Fprintln(os.Stderr, "connection error:", err)
+		return
 	}
 	defer telnetClient.Close()
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(sigCh)
+
+	sendDone := make(chan struct{})
+	receiveDone := make(chan struct{})
+
 	go func() {
-		<-sigCh
+		if err := telnetClient.Send(); err != nil {
+			fmt.Fprintln(os.Stderr, "send error:", err)
+		}
+		close(sendDone)
+	}()
+
+	go func() {
+		if err := telnetClient.Receive(); err != nil {
+			fmt.Fprintln(os.Stderr, "receive error:", err)
+		}
+		close(receiveDone)
+	}()
+
+	select {
+	case <-sigCh:
 		log.Println("signal received, closing connection")
-		telnetClient.Close()
-	}()
+	case <-sendDone:
+	case <-receiveDone:
+	}
 
-	wg := &sync.WaitGroup{}
-	wg.Add(2)
-
-	go func() {
-		for {
-			if err := telnetClient.Receive(); err != nil {
-				break
-			}
-		}
-		wg.Done()
-	}()
-
-	go func() {
-		for {
-			if err := telnetClient.Send(); err != nil {
-				break
-			}
-		}
-		wg.Done()
-	}()
-
-	wg.Wait()
+	telnetClient.Close()
 }

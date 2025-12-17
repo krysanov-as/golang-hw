@@ -1,22 +1,10 @@
 package main
 
 import (
-	"bufio"
-	"context"
-	"errors"
-	"fmt"
 	"io"
+	"log"
 	"net"
-	"os"
 	"time"
-)
-
-var (
-	ErrFailedConnection = errors.New("unable to establish a connection")
-	ErrConnectWasClosed = errors.New("connection was closed by the remote host")
-	ErrContextTimeout   = errors.New("context deadline exceeded")
-	ErrEOF              = errors.New("unexpected end of input")
-	ErrOther            = errors.New("an unspecified error occurred")
 )
 
 type TelnetClient interface {
@@ -26,77 +14,55 @@ type TelnetClient interface {
 	Receive() error
 }
 
-type client struct {
-	address    string
-	conn       net.Conn
-	in         *bufio.Scanner
-	outScanner *bufio.Scanner
-	out        io.Writer
-	ctx        context.Context
-	cancel     context.CancelFunc
-}
-
 func NewTelnetClient(address string, timeout time.Duration, in io.ReadCloser, out io.Writer) TelnetClient {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	return &client{
-		ctx:     ctx,
-		cancel:  cancel,
 		address: address,
-		in:      bufio.NewScanner(in),
+		timeout: timeout,
+		in:      in,
 		out:     out,
 	}
 }
 
-func (t *client) Connect() (err error) {
-	dialer := &net.Dialer{}
-	if t.conn, err = dialer.DialContext(t.ctx, "tcp", t.address); err != nil {
-		t.cancel()
-		return ErrFailedConnection
-	}
-	fmt.Fprintf(os.Stderr, "...Connected to %s\n", t.address)
-	t.outScanner = bufio.NewScanner(t.conn)
-	return nil
+type client struct {
+	address string
+	timeout time.Duration
+	in      io.ReadCloser
+	out     io.Writer
+	conn    net.Conn
 }
 
-func (t *client) Close() (err error) {
-	defer t.cancel()
-	if err = t.conn.Close(); err != nil {
+func (t *client) Connect() error {
+	var err error
+	t.conn, err = net.DialTimeout("tcp", t.address, t.timeout)
+	if err != nil {
 		return err
 	}
+	log.Printf("Connected to %s\n", t.address)
 	return nil
 }
 
-func (t *client) Send() (err error) {
-	select {
-	case <-t.ctx.Done():
-		return ErrContextTimeout
-	default:
-		if !t.in.Scan() {
-			if t.in.Err() == nil {
-				fmt.Fprint(os.Stderr, "....EOF\n")
-				t.Close()
-				return ErrEOF
-			}
-			return ErrOther
-		}
-		if _, err := t.conn.Write(fmt.Appendf(nil, "%s\n", t.in.Text())); err != nil {
-			return ErrConnectWasClosed
+func (t *client) Close() error {
+	if t.conn != nil {
+		err := t.conn.Close()
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
 
-func (t *client) Receive() (err error) {
-	select {
-	case <-t.ctx.Done():
-		return ErrContextTimeout
-	default:
-		if !t.outScanner.Scan() {
-			fmt.Fprint(os.Stderr, "...Connection was closed by peer\n")
-			t.cancel()
-			return ErrConnectWasClosed
-		}
-		fmt.Fprintf(t.out, "%s\n", t.outScanner.Text())
+func (t *client) Send() error {
+	if _, err := io.Copy(t.conn, t.in); err != nil {
+		return err
 	}
+	log.Println("EOF")
+	return nil
+}
+
+func (t *client) Receive() error {
+	if _, err := io.Copy(t.out, t.conn); err != nil {
+		return err
+	}
+	log.Println("Connection was closed by peer")
 	return nil
 }
