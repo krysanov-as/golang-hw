@@ -1,4 +1,4 @@
-module github.com/krysanov-as/hw04_lru_cache
+module github.com/krysanov-as/golang-hw/hw04_lru_cache
 
 go 1.23
 
