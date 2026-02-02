@@ -1,11 +1,20 @@
 package internalhttp
 
 import (
+	"log"
 	"net/http"
 )
 
-func loggingMiddleware(next http.Handler) http.Handler { //nolint:unused
+func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO
+		next.ServeHTTP(w, r)
+		log.Printf(
+			"%s %s %s %s %v",
+			r.RemoteAddr,
+			r.Method,
+			r.URL.Path,
+			r.Proto,
+			r.UserAgent(),
+		)
 	})
 }

@@ -2,30 +2,39 @@ package internalhttp
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 )
 
-type Server struct { // TODO
+type Server struct {
+	server *http.Server
 }
 
-type Logger interface { // TODO
+type Logger interface {
+	Info(string)
+	Error(string)
 }
 
-type Application interface { // TODO
-}
+type Application interface{}
 
-func NewServer(logger Logger, app Application) *Server {
-	return &Server{}
+func NewServer(logger Logger, app Application, host string, port int) *Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("pong"))
+	})
+
+	return &Server{
+		server: &http.Server{
+			Addr:    fmt.Sprintf("%s:%d", host, port),
+			Handler: loggingMiddleware(mux),
+		},
+	}
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	// TODO
-	<-ctx.Done()
-	return nil
+	return s.server.ListenAndServe()
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	// TODO
-	return nil
+	return s.server.Shutdown(ctx)
 }
-
-// TODO
