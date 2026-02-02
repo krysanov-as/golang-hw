@@ -8,9 +8,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/krysanov-as/hw12_13_14_15_calendar/internal/app" //nolint:depguard
-	"github.com/krysanov-as/hw12_13_14_15_calendar/internal/logger" //nolint:depguard
-	internalhttp "github.com/krysanov-as/hw12_13_14_15_calendar/internal/server/http" //nolint:depguard
+	"github.com/krysanov-as/hw12_13_14_15_calendar/internal/app"                          //nolint:depguard
+	"github.com/krysanov-as/hw12_13_14_15_calendar/internal/logger"                       //nolint:depguard
+	internalhttp "github.com/krysanov-as/hw12_13_14_15_calendar/internal/server/http"     //nolint:depguard
 	memorystorage "github.com/krysanov-as/hw12_13_14_15_calendar/internal/storage/memory" //nolint:depguard
 )
 

@@ -1,6 +1,6 @@
 package main
 
-import "github.com/spf13/viper"
+import "github.com/spf13/viper" //nolint:depguard
 
 type Config struct {
 	Logger LoggerConf `yaml:"logger"`

@@ -1,8 +1,6 @@
 module github.com/krysanov-as/hw12_13_14_15_calendar
 
-go 1.23.0
-
-toolchain go1.23.1
+go 1.23.1
 
 require github.com/spf13/viper v1.21.0
 
